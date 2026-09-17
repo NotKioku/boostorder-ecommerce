@@ -1,7 +1,31 @@
-﻿@page "/"
+@page "/"
+@page "/catalog"
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+@inject UserState UserState
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Catalog</PageTitle>
 
-<h1>Hello, world!</h1>
+@if (!UserState.IsLoggedIn)
+{
+    <div class="text-center mt-5">
+        <p>You need to log in to view the catalog.</p>
+        <button class="btn btn-primary" style="background-color: #2596be; border: none;" @onclick='() => Navigation.NavigateTo("/login")'>
+            Go to Login
+        </button>
+    </div>
+}
+else
+{
+    <h1>Welcome to Catalog</h1>
+}
 
-Welcome to your new app.
+@code {
+    protected override void OnInitialized()
+    {
+        if (!UserState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+}

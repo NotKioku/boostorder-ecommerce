@@ -1,13 +1,36 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject UserState UserState
+@implements IDisposable
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        <div class="top-row px-3">
+            <div class="layout-left">
+                <button class="back-button" @onclick="GoBack">
+                    <span class="back-arrow" aria-hidden="true"></span>
+					<span class="page-title">@GetPageTitle()</span>
+                </button>
+            </div>
+
+            @if (UserState.IsLoggedIn)
+            {
+                <div class="layout-right">
+                    <div class="account-container">
+                        <span class="account-name">@UserState.Username</span>
+                        <div class="account-avatar" title="@UserState.Username">
+                            @GetInitials(UserState.Username)
+                        </div>
+                    </div>
+
+                    <div class="menu-container">
+                        <button class="three-dots-button">
+							<span class="three-dots-vertical" aria-hidden="true"></span>
+						</button>
+                    </div>
+                </div>
+            }
         </div>
 
         <article class="content px-4">
@@ -21,3 +44,57 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+        UserState.OnStateChanged += OnUserStateChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    private void OnUserStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task GoBack()
+    {
+        await JS.InvokeVoidAsync("history.back");
+    }
+
+    private string GetPageTitle()
+    {
+        var relativePath = Navigation.ToBaseRelativePath(Navigation.Uri).ToLowerInvariant();
+        if (string.IsNullOrEmpty(relativePath))
+        {
+            return "Home";
+        }
+
+        var seg = relativePath.Split('?')[0].Split('#')[0].Trim('/');
+        if (string.IsNullOrEmpty(seg)) return "Home";
+
+        return char.ToUpper(seg[0]) + seg.Substring(1);
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "U";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1)
+        {
+            return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+        }
+        return $"{char.ToUpper(parts[0][0])}{char.ToUpper(parts[^1][0])}";
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+        UserState.OnStateChanged -= OnUserStateChanged;
+    }
+}

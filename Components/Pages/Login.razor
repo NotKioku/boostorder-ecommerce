@@ -1,0 +1,55 @@
+@page "/login"
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+@inject UserState UserState
+
+<PageTitle>Login</PageTitle>
+
+<div class="login-container">
+    <div class="login-card">
+        <h3 class="login-title">Login</h3>
+        <form @onsubmit="HandleLogin">
+            <div class="mb-3">
+                <label for="username">Company name</label>
+                <input type="text" id="username" class="form-control" @bind="username" placeholder="Enter company name" />
+                @if (showUsernameError)
+                {
+                    <div class="error-message">Company name must be between 3 and 16 characters.</div>
+                }
+            </div>
+            <div class="mb-4">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" id="password" class="form-control" @bind="password" placeholder="Enter password" />
+                @if (showPasswordError)
+                {
+                    <div class="error-message">Password must be between 3 and 16 characters.</div>
+                }
+            </div>
+            <button type="submit" class="btn-login">
+                Log In
+            </button>
+        </form>
+    </div>
+</div>
+
+@code {
+    private string username = string.Empty;
+    private string password = string.Empty;
+    private bool showUsernameError = false;
+    private bool showPasswordError = false;
+
+    private void HandleLogin()
+    {
+        var trimmedUsername = username?.Trim() ?? string.Empty;
+        var trimmedPassword = password?.Trim() ?? string.Empty;
+
+        showUsernameError = trimmedUsername.Length < 3 || trimmedUsername.Length > 16;
+        showPasswordError = trimmedPassword.Length < 3 || trimmedPassword.Length > 16;
+
+        if (!showUsernameError && !showPasswordError)
+        {
+            UserState.Login(trimmedUsername);
+            Navigation.NavigateTo("/");
+        }
+    }
+}
