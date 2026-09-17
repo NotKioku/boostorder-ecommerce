@@ -38,35 +38,52 @@
                         ? item.ImageSrc 
                         : "https://via.placeholder.com/75?text=Product";
 
-                    <div class="cart-item-row">
-                        <div class="cart-item-main">
-                            <div class="cart-item-details">
-                                <div class="sku-stock-header">
-                                    <span class="item-index">@indexNumber.</span>
-                                    <span class="sku-code">@item.Sku</span>
-                                    <span class="stock-status">@item.StockQuantity in stock</span>
-                                </div>
-                                <h6 class="product-title">@item.ProductName</h6>
-                                <div class="product-price">RM @item.Price.ToString("F2")</div>
-                            </div>
-                            <div class="cart-item-image-wrapper">
-                                <img src="@imageSrc" alt="@item.ProductName" class="cart-item-image" />
-                            </div>
+                    <div class="swipe-item-wrapper" @key="item.Id">
+                        <div class="swipe-delete-bg" @onclick="() => RemoveItem(item)">
+                            <span class="delete-label">
+								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">
+								  <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>
+								</svg>
+							</span>
                         </div>
-
-                        <div class="cart-item-metrics">
-                            <div class="metric-box order-metric">
-                                <span class="metric-label">Order</span>
-                                <button class="unit-selector-btn" @onclick="() => ToggleQuantityModal(item)">
-                                    <span>@item.Quantity @item.Uom</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chevron-right chevron-icon" viewBox="0 0 16 16">
-                                        <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
-                                    </svg>
-                                </button>
+                        <div class="cart-item-row swipe-front"
+                             style="transform: translateX(@(GetItemOffset(item))px); transition: @(activeSwipeItemId == item.Id && isDragging ? "none" : "transform 0.25s ease");"
+                             @ontouchstart="e => HandleTouchStart(e, item)"
+                             @ontouchmove="e => HandleTouchMove(e, item)"
+                             @ontouchend="e => HandleTouchEnd(e, item)"
+                             @onmousedown="e => HandleMouseDown(e, item)"
+                             @onmousemove="e => HandleMouseMove(e, item)"
+                             @onmouseup="e => HandleMouseUp(e, item)"
+                             @onmouseleave="e => HandleMouseLeave(e, item)">
+                            <div class="cart-item-main">
+                                <div class="cart-item-details">
+                                    <div class="sku-stock-header">
+                                        <span class="item-index">@indexNumber.</span>
+                                        <span class="sku-code">@item.Sku</span>
+                                        <span class="stock-status">@item.StockQuantity in stock</span>
+                                    </div>
+                                    <h6 class="product-title">@item.ProductName</h6>
+                                    <div class="product-price">RM @item.Price.ToString("F2")</div>
+                                </div>
+                                <div class="cart-item-image-wrapper">
+                                    <img src="@imageSrc" alt="@item.ProductName" class="cart-item-image" />
+                                </div>
                             </div>
-                            <div class="metric-box total-metric">
-                                <span class="metric-label">Total</span>
-                                <span class="metric-value">RM @itemTotal.ToString("F2")</span>
+
+                            <div class="cart-item-metrics">
+                                <div class="metric-box order-metric">
+                                    <span class="metric-label">Order</span>
+                                    <button class="unit-selector-btn" @onclick="() => ToggleQuantityModal(item)" @onclick:stopPropagation>
+                                        <span>@item.Quantity @item.Uom</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chevron-right chevron-icon" viewBox="0 0 16 16">
+                                            <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="metric-box total-metric">
+                                    <span class="metric-label">Total</span>
+                                    <span class="metric-value">RM @itemTotal.ToString("F2")</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -91,16 +108,16 @@
 
 @if (activeItemForEdit != null)
 {
-    <div class="modal-backdrop" @onclick="CloseQuantityModal">
+    <div class="modal-backdrop" @onclick="CancelQuantityModal">
         <div class="modal-card" @onclick:stopPropagation>
             <h5 class="modal-title">Adjust Quantity for @activeItemForEdit.ProductName</h5>
             <div class="modal-stepper">
                 <button class="stepper-btn" @onclick="DecrementQuantity">-</button>
-                <input type="number" class="stepper-input" @bind="activeItemForEdit.Quantity" min="0" />
+                <input type="number" class="stepper-input" @bind="tempQuantity" min="1" />
                 <button class="stepper-btn" @onclick="IncrementQuantity">+</button>
             </div>
             <div class="modal-actions">
-                <button class="btn-done" @onclick="CloseQuantityModal">Done</button>
+                <button class="btn-done" @onclick="SaveQuantityModal">Done</button>
             </div>
         </div>
     </div>
@@ -109,6 +126,12 @@
 @code {
     private bool isLoading = true;
     private CartItem? activeItemForEdit;
+    private int tempQuantity;
+
+    private int activeSwipeItemId = 0;
+    private double startX = 0;
+    private double currentOffsetX = 0;
+    private bool isDragging = false;
 
     private decimal GrandTotal => CartState.Items.Sum(item => item.Price * item.Quantity);
 
@@ -134,38 +157,136 @@
     private void ToggleQuantityModal(CartItem item)
     {
         activeItemForEdit = item;
+        tempQuantity = item.Quantity;
     }
 
-    private void CloseQuantityModal()
+    private void CancelQuantityModal()
+    {
+        activeItemForEdit = null;
+    }
+
+    private void SaveQuantityModal()
     {
         if (activeItemForEdit != null)
         {
-            if (activeItemForEdit.Quantity <= 0)
-            {
-                CartState.RemoveItem(activeItemForEdit);
-            }
-            else
-            {
-                CartState.UpdateQuantity(activeItemForEdit, activeItemForEdit.Quantity);
-            }
+            var qty = Math.Max(1, tempQuantity);
+            CartState.UpdateQuantity(activeItemForEdit, qty);
         }
         activeItemForEdit = null;
     }
 
     private void IncrementQuantity()
     {
-        if (activeItemForEdit != null)
-        {
-            activeItemForEdit.Quantity++;
-        }
+        tempQuantity++;
     }
 
     private void DecrementQuantity()
     {
-        if (activeItemForEdit != null && activeItemForEdit.Quantity > 0)
+        if (tempQuantity > 1)
         {
-            activeItemForEdit.Quantity--;
+            tempQuantity--;
         }
+    }
+
+    private void RemoveItem(CartItem item)
+    {
+        CartState.RemoveItem(item);
+    }
+
+    private void HandleTouchStart(TouchEventArgs e, CartItem item)
+    {
+        if (e.Touches.Length > 0)
+        {
+            activeSwipeItemId = item.Id;
+            startX = e.Touches[0].ClientX;
+            isDragging = true;
+        }
+    }
+
+    private void HandleTouchMove(TouchEventArgs e, CartItem item)
+    {
+        if (isDragging && activeSwipeItemId == item.Id && e.Touches.Length > 0)
+        {
+            double delta = e.Touches[0].ClientX - startX;
+            if (delta < 0)
+            {
+                currentOffsetX = Math.Max(delta, -150);
+            }
+            else
+            {
+                currentOffsetX = 0;
+            }
+        }
+    }
+
+    private void HandleTouchEnd(TouchEventArgs e, CartItem item)
+    {
+        if (activeSwipeItemId == item.Id)
+        {
+            if (currentOffsetX < -70)
+            {
+                RemoveItem(item);
+            }
+            activeSwipeItemId = 0;
+            currentOffsetX = 0;
+            isDragging = false;
+        }
+    }
+
+    private void HandleMouseDown(MouseEventArgs e, CartItem item)
+    {
+        activeSwipeItemId = item.Id;
+        startX = e.ClientX;
+        isDragging = true;
+    }
+
+    private void HandleMouseMove(MouseEventArgs e, CartItem item)
+    {
+        if (isDragging && activeSwipeItemId == item.Id)
+        {
+            double delta = e.ClientX - startX;
+            if (delta < 0)
+            {
+                currentOffsetX = Math.Max(delta, -150);
+            }
+            else
+            {
+                currentOffsetX = 0;
+            }
+        }
+    }
+
+    private void HandleMouseUp(MouseEventArgs e, CartItem item)
+    {
+        if (activeSwipeItemId == item.Id)
+        {
+            if (currentOffsetX < -70)
+            {
+                RemoveItem(item);
+            }
+            activeSwipeItemId = 0;
+            currentOffsetX = 0;
+            isDragging = false;
+        }
+    }
+
+    private void HandleMouseLeave(MouseEventArgs e, CartItem item)
+    {
+        if (activeSwipeItemId == item.Id && isDragging)
+        {
+            if (currentOffsetX < -70)
+            {
+                RemoveItem(item);
+            }
+            activeSwipeItemId = 0;
+            currentOffsetX = 0;
+            isDragging = false;
+        }
+    }
+
+    private double GetItemOffset(CartItem item)
+    {
+        return activeSwipeItemId == item.Id ? currentOffsetX : 0;
     }
 
     public void Dispose()

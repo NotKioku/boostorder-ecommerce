@@ -122,7 +122,6 @@ main[b-usfniemkc5] {
     }
 /* /Components/Pages/Cart.razor.rz.scp.css */
 .cart-container[b-rrbhfwf2ii] {
-    max-width: 600px;
     margin: 0 auto;
     min-height: calc(100vh - 3.5rem);
     background-color: #f4f5f7;
@@ -133,7 +132,7 @@ main[b-usfniemkc5] {
 
 .cart-card[b-rrbhfwf2ii] {
     background-color: #ffffff;
-    padding: 0 1rem;
+    padding: 0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
@@ -141,7 +140,7 @@ main[b-usfniemkc5] {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.25rem 0;
+    padding: 1.25rem;
 }
 
 .subtotal-label[b-rrbhfwf2ii] {
@@ -205,8 +204,39 @@ main[b-usfniemkc5] {
 }
 
 .cart-item-row[b-rrbhfwf2ii] {
-    padding: 1.25rem 0;
+    padding: 1.25rem;
     border-bottom: 1px solid #e9ecef;
+}
+
+.swipe-item-wrapper[b-rrbhfwf2ii] {
+    position: relative;
+    overflow: hidden;
+    background-color: #ef4444;
+}
+
+.swipe-delete-bg[b-rrbhfwf2ii] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100px;
+    background-color: #ef4444;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.swipe-front[b-rrbhfwf2ii] {
+    position: relative;
+    z-index: 2;
+    background-color: #ffffff;
+    user-select: none;
+    touch-action: pan-y;
 }
 
 .cart-item-main[b-rrbhfwf2ii] {
@@ -333,7 +363,6 @@ main[b-usfniemkc5] {
     left: 0;
     right: 0;
     margin: 0 auto;
-    max-width: 600px;
     background-color: #ffffff;
     display: flex;
     justify-content: space-between;
