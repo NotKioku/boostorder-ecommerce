@@ -1,5 +1,289 @@
+@page "/"
 @page "/catalog"
+@rendermode InteractiveServer
+@using boostorder_ecommerce.Models
+@using boostorder_ecommerce.Services
+@inject NavigationManager Navigation
+@inject UserState UserState
+@inject ProductApiService ProductService
 
 <PageTitle>Catalog</PageTitle>
 
-<h1> Welcome to Catalog</h1>
+<div class="catalog-container">
+    <div class="search-cart-group">
+        <div class="search-bar">
+            <span class="search-icon-wrapper">
+                <svg xmlns="http://www.w3.org/2000/svg" class="bi bi-search search-icon-svg" viewBox="0 0 16 16">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                </svg>
+            </span>
+            <input type="text" class="search-input" 
+                   placeholder="Search" 
+                   @bind="searchQuery" 
+                   @bind:event="oninput" />
+        </div>
+        <div class="cart-icon-wrapper">
+            <svg xmlns="http://www.w3.org/2000/svg" class="bi bi-cart3 cart-icon-svg" viewBox="0 0 16 16">
+                <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .49.598l-1 5a.5.5 0 0 1-.465.401l-9.397.472L4.415 11H13a.5.5 0 0 1 0 1H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.102 4l.84 4.479 9.144-.459L13.89 4H3.102zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+            </svg>
+            <span class="cart-badge">
+                @cartCount
+            </span>
+        </div>
+    </div>
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="loading-spinner" role="status"></div>
+            <span>Loading products...</span>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(ProductService.LastError))
+    {
+        <div class="alert-danger" role="alert">
+            <strong>Error loading products:</strong> @ProductService.LastError
+        </div>
+    }
+    else if (FilteredProducts == null || !FilteredProducts.Any())
+    {
+        <div class="alert-info" role="alert">
+            No products found matching your filter.
+        </div>
+    }
+    else
+    {
+        <div class="product-list">
+            @foreach (var product in FilteredProducts)
+            {
+                var imageSrc = product.Images?.FirstOrDefault()?.SrcMedium 
+                    ?? product.Images?.FirstOrDefault()?.Src 
+                    ?? "https://via.placeholder.com/100?text=No+Image";
+
+                var itemState = GetProductState(product.Id);
+                var uomOptions = GetUomOptions(product);
+
+                var displaySku = GetDisplaySku(product, itemState.SelectedUom);
+                var displayPrice = GetDisplayPrice(product, itemState.SelectedUom);
+                var displayStock = GetDisplayStock(product, itemState.SelectedUom);
+
+                <div class="product-item-row">
+                    <div class="product-main-info">
+                        <div class="product-details-left">
+                            <div class="stock-sku-line">
+                                <span class="sku-text">@displaySku</span>
+                                <span class="stock-text">
+                                    @displayStock
+                                </span>
+                            </div>
+                            <h6 class="product-name">
+                                @product.Name
+                            </h6>
+                            <div class="product-price">
+                                RM @displayPrice
+                            </div>
+                        </div>
+                        <div class="product-thumb-container">
+                            <img src="@imageSrc" class="product-thumb" alt="@product.Name" />
+                        </div>
+                    </div>
+                    <div class="product-actions-row">
+                        <select class="uom-select" 
+                                @bind="itemState.SelectedUom">
+                            @foreach (var option in uomOptions)
+                            {
+                                <option value="@option">@option</option>
+                            }
+                        </select>
+                        <div class="quantity-stepper">
+                            <button class="quantity-button" 
+                                    type="button" 
+                                    @onclick="() => DecrementQuantity(itemState)">−</button>
+                            <input type="text" class="quantity-input" 
+                                   value="@itemState.Quantity" 
+                                   readonly />
+                            <button class="quantity-button" 
+                                    type="button" 
+                                    @onclick="() => IncrementQuantity(itemState)">+</button>
+                        </div>
+                        <button class="add-cart-button" 
+                                @onclick="() => AddToCart(itemState)">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="bi bi-plus plus-icon-svg" viewBox="0 0 16 16">
+                                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<Product>? products;
+    private string searchQuery = string.Empty;
+    private bool isLoading = true;
+    private int cartCount = 3;
+
+    private Dictionary<int, ItemState> itemStates = new();
+
+    private class ItemState
+    {
+        public int ProductId { get; set; }
+        public string SelectedUom { get; set; } = "UNIT";
+        public int Quantity { get; set; } = 1;
+    }
+
+    private IEnumerable<Product>? FilteredProducts =>
+        string.IsNullOrWhiteSpace(searchQuery)
+            ? products
+            : products?.Where(p => 
+                (p.Name != null && p.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)) ||
+                (p.Sku != null && p.Sku.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!UserState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        isLoading = true;
+        try
+        {
+            products = await ProductService.GetProductsAsync(page: 1);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private ItemState GetProductState(int productId)
+    {
+        if (!itemStates.TryGetValue(productId, out var state))
+        {
+            var product = products?.FirstOrDefault(p => p.Id == productId);
+            var initialUom = GetUomOptions(product).FirstOrDefault() ?? "UNIT";
+            state = new ItemState { ProductId = productId, SelectedUom = initialUom, Quantity = 1 };
+            itemStates[productId] = state;
+        }
+        return state;
+    }
+
+    private List<string> GetUomOptions(Product? product)
+    {
+        var list = new List<string>();
+
+        if (product?.Attributes != null)
+        {
+            var uomAttr = product.Attributes.FirstOrDefault(a => 
+                string.Equals(a.Name, "UOM", StringComparison.OrdinalIgnoreCase) || 
+                string.Equals(a.Name, "uom", StringComparison.OrdinalIgnoreCase));
+            if (uomAttr != null && uomAttr.Options != null)
+            {
+                list.AddRange(uomAttr.Options);
+            }
+        }
+
+        if (product?.Variations != null)
+        {
+            foreach (var v in product.Variations)
+            {
+                if (!string.IsNullOrWhiteSpace(v.Uom) && !list.Contains(v.Uom, StringComparer.OrdinalIgnoreCase))
+                {
+                    list.Add(v.Uom);
+                }
+                var attrUom = v.Attributes?.FirstOrDefault(a => 
+                    string.Equals(a.Name, "UOM", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(a.Name, "uom", StringComparison.OrdinalIgnoreCase));
+                if (attrUom != null && !string.IsNullOrWhiteSpace(attrUom.Option) && !list.Contains(attrUom.Option, StringComparer.OrdinalIgnoreCase))
+                {
+                    list.Add(attrUom.Option);
+                }
+            }
+        }
+
+        return list.Distinct(StringComparer.OrdinalIgnoreCase).ToList() is var uoms && uoms.Any() ? uoms : new List<string> { "UNIT" };
+    }
+
+    private ProductVariation? GetVariationForUom(Product product, string selectedUom)
+    {
+        if (product.Variations == null || !product.Variations.Any()) return null;
+
+        return product.Variations.FirstOrDefault(v => 
+            string.Equals(v.Uom, selectedUom, StringComparison.OrdinalIgnoreCase) ||
+            v.Attributes.Any(a => string.Equals(a.Option, selectedUom, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private string GetDisplaySku(Product product, string selectedUom)
+    {
+        var variation = GetVariationForUom(product, selectedUom);
+        if (variation != null && !string.IsNullOrWhiteSpace(variation.Sku))
+        {
+            return variation.Sku;
+        }
+        return string.IsNullOrWhiteSpace(product.Sku) ? $"SKU_{product.Id}" : product.Sku;
+    }
+
+    private string GetDisplayPrice(Product product, string selectedUom)
+    {
+        var variation = GetVariationForUom(product, selectedUom);
+        if (variation != null && !string.IsNullOrWhiteSpace(variation.RegularPrice) && variation.RegularPrice != "0.0000")
+        {
+            return FormatPrice(variation.RegularPrice);
+        }
+        return FormatPrice(product.RegularPrice);
+    }
+
+    private string GetDisplayStock(Product product, string selectedUom)
+    {
+        var variation = GetVariationForUom(product, selectedUom);
+        if (variation != null)
+        {
+            double stock = variation.TotalInventoryStock;
+            if (stock != 0)
+            {
+                return $"{stock:0} In stock";
+            }
+            if (variation.InStock)
+            {
+                return "In stock";
+            }
+            return "Out of stock";
+        }
+
+        if (product.StockQuantity.HasValue && product.StockQuantity.Value != 0)
+        {
+            return $"{product.StockQuantity.Value} In stock";
+        }
+        return product.InStock ? "In stock" : "Out of stock";
+    }
+
+    private void IncrementQuantity(ItemState state)
+    {
+        state.Quantity++;
+    }
+
+    private void DecrementQuantity(ItemState state)
+    {
+        if (state.Quantity > 1)
+        {
+            state.Quantity--;
+        }
+    }
+
+    private void AddToCart(ItemState state)
+    {
+        cartCount += state.Quantity;
+    }
+
+    private string FormatPrice(string priceStr)
+    {
+        if (decimal.TryParse(priceStr, out var val))
+        {
+            return val.ToString("F2");
+        }
+        return priceStr;
+    }
+}

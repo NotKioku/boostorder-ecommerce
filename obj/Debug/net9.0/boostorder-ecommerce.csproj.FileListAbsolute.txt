@@ -76,5 +76,7 @@ C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed
 C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed\wosci7boy4-{0}-0j3bgjxly4-0j3bgjxly4.gz
 C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\swae.build.ex.cache
 C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\scopedcss\Components\Pages\Login.razor.rz.scp.css
-C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed\d7btmppzy6-{0}-5fijacru7q-5fijacru7q.gz
-C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed\oqkirqmbmd-{0}-5fijacru7q-5fijacru7q.gz
+C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\scopedcss\Components\Pages\Catalog.razor.rz.scp.css
+C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\scopedcss\Components\Pages\Cart.razor.rz.scp.css
+C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed\d7btmppzy6-{0}-h3c7iypk0w-h3c7iypk0w.gz
+C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed\oqkirqmbmd-{0}-h3c7iypk0w-h3c7iypk0w.gz

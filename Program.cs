@@ -1,5 +1,6 @@
 using boostorder_ecommerce.Components;
 using boostorder_ecommerce.GlobalStates;
+using boostorder_ecommerce.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddSingleton<UserState>();
+builder.Services.AddHttpClient<ProductApiService>();
 
 var app = builder.Build();
 
