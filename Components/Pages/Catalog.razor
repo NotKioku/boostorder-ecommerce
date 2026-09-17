@@ -8,7 +8,8 @@
 @inject UserState UserState
 @inject CartState CartState
 @inject ProductApiService ProductService
-@implements IDisposable
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
 
 <PageTitle>Catalog</PageTitle>
 
@@ -120,6 +121,14 @@
                     </div>
                 </div>
             }
+            @if (isLoadingMore)
+            {
+                <div class="loading-container" style="margin: 1.5rem 0;">
+                    <div class="loading-spinner" role="status"></div>
+                    <span>Loading more products...</span>
+                </div>
+            }
+            <div id="scroll-sentinel" style="height: 20px; width: 100%;"></div>
         </div>
     }
 </div>
@@ -128,6 +137,10 @@
     private List<Product>? products;
     private string searchQuery = string.Empty;
     private bool isLoading = true;
+    private int currentPage = 1;
+    private bool isLoadingMore = false;
+    private bool hasMoreProducts = true;
+    private DotNetObjectReference<Catalog>? dotNetHelper;
 
     private Dictionary<int, ItemState> itemStates = new();
 
@@ -141,9 +154,32 @@
     private IEnumerable<Product>? FilteredProducts =>
         string.IsNullOrWhiteSpace(searchQuery)
             ? products
-            : products?.Where(p => 
-                (p.Name != null && p.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)) ||
-                (p.Sku != null && p.Sku.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)));
+            : products?.Where(p => IsProductMatchingSearch(p, searchQuery));
+
+    private bool IsProductMatchingSearch(Product p, string query)
+    {
+        if (p == null) return false;
+
+        if (!string.IsNullOrEmpty(p.Name) && p.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (!string.IsNullOrEmpty(p.Sku) && p.Sku.Contains(query, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if ($"SKU_{p.Id}".Contains(query, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (p.Variations != null && p.Variations.Any(v => 
+            (!string.IsNullOrEmpty(v.Sku) && v.Sku.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrEmpty(v.Uom) && v.Uom.Contains(query, StringComparison.OrdinalIgnoreCase))))
+            return true;
+
+        if (p.Attributes != null && p.Attributes.Any(a => 
+            a.Options != null && a.Options.Any(o => o != null && o.Contains(query, StringComparison.OrdinalIgnoreCase))))
+            return true;
+
+        return false;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -158,7 +194,12 @@
         isLoading = true;
         try
         {
-            products = await ProductService.GetProductsAsync(page: 1);
+            currentPage = 1;
+            products = await ProductService.GetProductsAsync(page: currentPage);
+            if (products == null || !products.Any())
+            {
+                hasMoreProducts = false;
+            }
         }
         finally
         {
@@ -166,11 +207,84 @@
         }
     }
 
+    private bool isObserverInitialized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!isLoading && !isObserverInitialized && UserState.IsLoggedIn)
+        {
+            dotNetHelper ??= DotNetObjectReference.Create(this);
+            var initialized = await JSRuntime.InvokeAsync<bool>("catalogScroll.init", dotNetHelper, "scroll-sentinel");
+            if (initialized)
+            {
+                isObserverInitialized = true;
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnScrollToBottom()
+    {
+        if (isLoading || isLoadingMore || !hasMoreProducts) return;
+
+        isLoadingMore = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var nextPage = currentPage + 1;
+            var newProducts = await ProductService.GetProductsAsync(page: nextPage);
+            if (newProducts != null && newProducts.Any())
+            {
+                currentPage = nextPage;
+                products ??= new List<Product>();
+                var existingIds = products.Select(p => p.Id).ToHashSet();
+                int addedCount = 0;
+                foreach (var p in newProducts)
+                {
+                    if (existingIds.Add(p.Id))
+                    {
+                        products.Add(p);
+                        addedCount++;
+                    }
+                }
+                if (addedCount == 0)
+                {
+                    hasMoreProducts = false;
+                }
+            }
+            else
+            {
+                hasMoreProducts = false;
+            }
+        }
+        catch
+        {
+            // Ignore temporary fetch error
+        }
+        finally
+        {
+            isLoadingMore = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     private void OnCartStateChanged() => InvokeAsync(StateHasChanged);
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         CartState.OnStateChanged -= OnCartStateChanged;
+        if (dotNetHelper != null)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("catalogScroll.dispose");
+            }
+            catch
+            {
+            }
+            dotNetHelper.Dispose();
+        }
     }
 
     private ItemState GetProductState(int productId)
