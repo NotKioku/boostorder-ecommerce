@@ -43,6 +43,26 @@ window.catalogScroll = {
 
         return true;
     },
+    saveProducts: function (key, dataJson) {
+        try {
+            localStorage.setItem(key, dataJson);
+            return true;
+        } catch (e) {
+            console.error('Error saving to localStorage', e);
+            return false;
+        }
+    },
+    getProducts: function (key) {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            console.error('Error reading from localStorage', e);
+            return null;
+        }
+    },
+    isOnline: function () {
+        return navigator.onLine;
+    },
     dispose: function () {
         if (this.observer) {
             this.observer.disconnect();

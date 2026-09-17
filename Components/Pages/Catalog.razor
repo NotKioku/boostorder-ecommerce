@@ -4,6 +4,8 @@
 @using boostorder_ecommerce.Models
 @using boostorder_ecommerce.Services
 @using boostorder_ecommerce.GlobalStates
+@using System.Text.Json
+@using System.Text.Json.Serialization
 @inject NavigationManager Navigation
 @inject UserState UserState
 @inject CartState CartState
@@ -38,6 +40,18 @@
             }
         </NavLink>
     </div>
+
+    @if (isOffline)
+    {
+        <div class="offline-notice" role="status">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                <path d="M10.706 3.294A12.545 12.545 0 0 0 8 3C5.259 3 2.723 3.882.663 5.379a.485.485 0 0 0-.048.736.518.518 0 0 0 .668.05A11.448 11.448 0 0 1 8 4c.63 0 1.249.05 1.852.148l.854-.854zM8 6c-1.905 0-3.68.56-5.194 1.526a.52.52 0 0 0-.048.737.517.517 0 0 0 .668.049A9.458 9.458 0 0 1 8 7c.877 0 1.722.128 2.522.365l.777-.777A10.534 10.534 0 0 0 8 6z"/>
+                <path d="M13.683 1a.5.5 0 0 1 .494.62l-.76 4.31a.5.5 0 0 1-.365.4l-4.148 1.152a.5.5 0 0 1-.58-.727l1.049-1.574A9.972 9.972 0 0 0 8 4.5c-1.393 0-2.697.355-3.834.982l-.736-.736A11.455 11.455 0 0 1 8 3.5c1.603 0 3.09.435 4.382 1.189L13.146 1.4A.5.5 0 0 1 13.683 1zM0 1.5l14 14-.707.707L0 2.207.707 1.5z"/>
+            </svg>
+            <span>You are offline. Showing cached catalog products.</span>
+        </div>
+    }
+
     @if (isLoading)
     {
         <div class="loading-container">
@@ -45,10 +59,10 @@
             <span>Loading products...</span>
         </div>
     }
-    else if (!string.IsNullOrEmpty(ProductService.LastError))
+    else if (!string.IsNullOrEmpty(errorMessage) && (products == null || !products.Any()))
     {
         <div class="alert-danger" role="alert">
-            <strong>Error loading products:</strong> @ProductService.LastError
+            <strong>Error:</strong> @errorMessage
         </div>
     }
     else if (FilteredProducts == null || !FilteredProducts.Any())
@@ -140,7 +154,10 @@
     private int currentPage = 1;
     private bool isLoadingMore = false;
     private bool hasMoreProducts = true;
+    private bool isOffline = false;
+    private string? errorMessage = null;
     private DotNetObjectReference<Catalog>? dotNetHelper;
+    private const string LocalStorageKey = "boostorder_cached_products";
 
     private Dictionary<int, ItemState> itemStates = new();
 
@@ -196,10 +213,21 @@
         {
             currentPage = 1;
             products = await ProductService.GetProductsAsync(page: currentPage);
-            if (products == null || !products.Any())
+
+            if (!string.IsNullOrEmpty(ProductService.LastError) || products == null || !products.Any())
             {
+                // Network failure or empty response from API
+                if (!string.IsNullOrEmpty(ProductService.LastError))
+                {
+                    errorMessage = ProductService.LastError;
+                }
                 hasMoreProducts = false;
             }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            hasMoreProducts = false;
         }
         finally
         {
@@ -211,6 +239,20 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender && UserState.IsLoggedIn)
+        {
+            // If initial fetch failed or returned empty, check if we're offline and fallback to local storage
+            if (products == null || !products.Any())
+            {
+                await TryLoadFromLocalStorageAsync();
+            }
+            else
+            {
+                // Cache the successfully fetched products
+                await SaveToLocalStorageAsync();
+            }
+        }
+
         if (!isLoading && !isObserverInitialized && UserState.IsLoggedIn)
         {
             dotNetHelper ??= DotNetObjectReference.Create(this);
@@ -222,10 +264,57 @@
         }
     }
 
+    private async Task TryLoadFromLocalStorageAsync()
+    {
+        try
+        {
+            bool online = await JSRuntime.InvokeAsync<bool>("catalogScroll.isOnline");
+            var cachedJson = await JSRuntime.InvokeAsync<string?>("catalogScroll.getProducts", LocalStorageKey);
+            if (!string.IsNullOrWhiteSpace(cachedJson))
+            {
+                var cachedProducts = JsonSerializer.Deserialize<List<Product>>(cachedJson);
+                if (cachedProducts != null && cachedProducts.Any())
+                {
+                    products = cachedProducts;
+                    isOffline = !online || !string.IsNullOrEmpty(errorMessage);
+                    errorMessage = null;
+                    hasMoreProducts = false; // Cannot paginate next pages offline
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            else if (!online)
+            {
+                isOffline = true;
+                errorMessage = "No internet connection and no cached products found.";
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Catalog] Error loading cached products: {ex.Message}");
+        }
+    }
+
+    private async Task SaveToLocalStorageAsync()
+    {
+        if (products != null && products.Any())
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(products);
+                await JSRuntime.InvokeVoidAsync("catalogScroll.saveProducts", LocalStorageKey, json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Catalog] Error saving products to local storage: {ex.Message}");
+            }
+        }
+    }
+
     [JSInvokable]
     public async Task OnScrollToBottom()
     {
-        if (isLoading || isLoadingMore || !hasMoreProducts) return;
+        if (isLoading || isLoadingMore || !hasMoreProducts || isOffline) return;
 
         isLoadingMore = true;
         await InvokeAsync(StateHasChanged);
@@ -251,6 +340,11 @@
                 if (addedCount == 0)
                 {
                     hasMoreProducts = false;
+                }
+                else
+                {
+                    // Update cache with the newly accumulated products
+                    await SaveToLocalStorageAsync();
                 }
             }
             else

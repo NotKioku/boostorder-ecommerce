@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("boostorder-ecommerce")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0a6906e6e63ee4e9a02044fbd1601e5d6f7030e5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bb82a8ba9b0db4466809c099ea2dc47a4160e31e")]
 [assembly: System.Reflection.AssemblyProductAttribute("boostorder-ecommerce")]
 [assembly: System.Reflection.AssemblyTitleAttribute("boostorder-ecommerce")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

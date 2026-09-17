@@ -67,11 +67,11 @@
         var relativePath = Navigation.ToBaseRelativePath(Navigation.Uri).ToLowerInvariant();
         if (string.IsNullOrEmpty(relativePath))
         {
-            return "Home";
+            return "Catalog";
         }
 
         var seg = relativePath.Split('?')[0].Split('#')[0].Trim('/');
-        if (string.IsNullOrEmpty(seg)) return "Home";
+        if (string.IsNullOrEmpty(seg)) return "Catalog";
 
         return char.ToUpper(seg[0]) + seg.Substring(1);
     }
