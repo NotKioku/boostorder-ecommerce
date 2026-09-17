@@ -8,10 +8,10 @@
     <main>
         <div class="top-row px-3">
             <div class="layout-left">
-                <button class="back-button" @onclick="GoBack">
+                <NavLink class="back-button" href="/" Match="NavLinkMatch.All">
                     <span class="back-arrow" aria-hidden="true"></span>
 					<span class="page-title">@GetPageTitle()</span>
-                </button>
+                </NavLink>
             </div>
 
             @if (UserState.IsLoggedIn)
@@ -60,11 +60,6 @@
     private void OnUserStateChanged()
     {
         InvokeAsync(StateHasChanged);
-    }
-
-    private async Task GoBack()
-    {
-        await JS.InvokeVoidAsync("history.back");
     }
 
     private string GetPageTitle()

@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddSingleton<UserState>();
+builder.Services.AddSingleton<CartState>();
 builder.Services.AddHttpClient<ProductApiService>();
 
 var app = builder.Build();

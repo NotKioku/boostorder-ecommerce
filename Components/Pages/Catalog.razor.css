@@ -39,20 +39,33 @@
 	outline: none;
 }
 
+::deep .cart-icon-wrapper,
+::deep a.cart-icon-wrapper,
 .cart-icon-wrapper {
     position: relative;
     margin-left: 0.5rem;
     cursor: pointer;
     display: flex;
     align-items: center;
+    text-decoration: none !important;
+    color: inherit !important;
 }
 
+::deep .cart-icon-wrapper:hover,
+::deep a.cart-icon-wrapper:hover,
+.cart-icon-wrapper:hover {
+    text-decoration: none !important;
+    color: inherit !important;
+}
+
+::deep .cart-icon-svg,
 .cart-icon-svg {
     width: 28px;
     height: 28px;
     fill: #333333;
 }
 
+::deep .cart-badge,
 .cart-badge {
     position: absolute;
     top: -4px;
