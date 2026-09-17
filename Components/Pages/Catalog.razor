@@ -198,7 +198,7 @@
         return false;
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         if (!UserState.IsLoggedIn)
         {
@@ -207,91 +207,69 @@
         }
 
         CartState.OnStateChanged += OnCartStateChanged;
-
-        isLoading = true;
-        try
-        {
-            currentPage = 1;
-            products = await ProductService.GetProductsAsync(page: currentPage);
-
-            if (!string.IsNullOrEmpty(ProductService.LastError) || products == null || !products.Any())
-            {
-                // Network failure or empty response from API
-                if (!string.IsNullOrEmpty(ProductService.LastError))
-                {
-                    errorMessage = ProductService.LastError;
-                }
-                hasMoreProducts = false;
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = ex.Message;
-            hasMoreProducts = false;
-        }
-        finally
-        {
-            isLoading = false;
-        }
     }
-
-    private bool isObserverInitialized = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && UserState.IsLoggedIn)
         {
-            // If initial fetch failed or returned empty, check if we're offline and fallback to local storage
-            if (products == null || !products.Any())
-            {
-                await TryLoadFromLocalStorageAsync();
-            }
-            else
-            {
-                // Cache the successfully fetched products
-                await SaveToLocalStorageAsync();
-            }
+            isLoading = true;
+            await InvokeAsync(StateHasChanged);
+
+            await LoadInitialDataAsync();
+
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
         }
 
-        if (!isLoading && !isObserverInitialized && UserState.IsLoggedIn)
+        if (!isLoading && UserState.IsLoggedIn)
         {
             dotNetHelper ??= DotNetObjectReference.Create(this);
-            var initialized = await JSRuntime.InvokeAsync<bool>("catalogScroll.init", dotNetHelper, "scroll-sentinel");
-            if (initialized)
-            {
-                isObserverInitialized = true;
-            }
+            await JSRuntime.InvokeAsync<bool>("catalogScroll.init", dotNetHelper, "scroll-sentinel");
         }
     }
 
-    private async Task TryLoadFromLocalStorageAsync()
+    private async Task LoadInitialDataAsync()
     {
         try
         {
             bool online = await JSRuntime.InvokeAsync<bool>("catalogScroll.isOnline");
             var cachedJson = await JSRuntime.InvokeAsync<string?>("catalogScroll.getProducts", LocalStorageKey);
+
             if (!string.IsNullOrWhiteSpace(cachedJson))
             {
                 var cachedProducts = JsonSerializer.Deserialize<List<Product>>(cachedJson);
                 if (cachedProducts != null && cachedProducts.Any())
                 {
                     products = cachedProducts;
-                    isOffline = !online || !string.IsNullOrEmpty(errorMessage);
-                    errorMessage = null;
-                    hasMoreProducts = false; // Cannot paginate next pages offline
-                    await InvokeAsync(StateHasChanged);
+                    currentPage = Math.Max(1, (int)Math.Ceiling(products.Count / 10.0));
+                    hasMoreProducts = online;
+                    isOffline = !online;
+                    return;
                 }
             }
-            else if (!online)
+
+            // Fallback to API if local storage empty or unavailable
+            currentPage = 1;
+            var initialProducts = await ProductService.GetProductsAsync(page: currentPage);
+            if (initialProducts != null && initialProducts.Any())
             {
-                isOffline = true;
-                errorMessage = "No internet connection and no cached products found.";
-                await InvokeAsync(StateHasChanged);
+                products = initialProducts;
+                hasMoreProducts = true;
+                isOffline = !online;
+                await SaveToLocalStorageAsync();
+            }
+            else
+            {
+                errorMessage = ProductService.LastError ?? "No products available.";
+                hasMoreProducts = false;
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Catalog] Error loading cached products: {ex.Message}");
+            Console.WriteLine($"[Catalog] LoadInitialDataAsync error: {ex.Message}");
+            errorMessage = ex.Message;
+            hasMoreProducts = false;
         }
     }
 
@@ -314,7 +292,21 @@
     [JSInvokable]
     public async Task OnScrollToBottom()
     {
-        if (isLoading || isLoadingMore || !hasMoreProducts || isOffline) return;
+        if (isOffline)
+        {
+            bool online = await JSRuntime.InvokeAsync<bool>("catalogScroll.isOnline");
+            if (online)
+            {
+                isOffline = false;
+                hasMoreProducts = true;
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        if (isLoading || isLoadingMore || !hasMoreProducts) return;
 
         isLoadingMore = true;
         await InvokeAsync(StateHasChanged);
@@ -343,7 +335,6 @@
                 }
                 else
                 {
-                    // Update cache with the newly accumulated products
                     await SaveToLocalStorageAsync();
                 }
             }
@@ -352,9 +343,9 @@
                 hasMoreProducts = false;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore temporary fetch error
+            Console.WriteLine($"[Catalog] OnScrollToBottom error: {ex.Message}");
         }
         finally
         {
