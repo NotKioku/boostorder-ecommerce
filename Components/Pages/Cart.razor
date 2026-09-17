@@ -1,5 +1,209 @@
 @page "/cart"
+@rendermode InteractiveServer
+@using boostorder_ecommerce.Models
+@using boostorder_ecommerce.Services
+@using boostorder_ecommerce.GlobalStates
+@inject NavigationManager Navigation
+@inject UserState UserState
+@inject ProductApiService ProductService
 
 <PageTitle>Cart</PageTitle>
 
-<h1>Welcome to Cart</h1>
+<div class="cart-container">
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="loading-spinner" role="status"></div>
+            <span>Loading cart items...</span>
+        </div>
+    }
+    else if (cartItems == null || !cartItems.Any())
+    {
+        <div class="empty-cart-container">
+            <p class="empty-cart-text">Your cart is empty</p>
+            <button class="btn-shop" @onclick="GoToCatalog">Continue Shopping</button>
+        </div>
+    }
+    else
+    {
+        <div class="cart-list">
+            @for (int i = 0; i < cartItems.Count; i++)
+            {
+                var item = cartItems[i];
+                var indexNumber = i + 1;
+                var itemTotal = item.Price * item.Quantity;
+                var imageSrc = !string.IsNullOrEmpty(item.ImageSrc) 
+                    ? item.ImageSrc 
+                    : "https://via.placeholder.com/75?text=Product";
+
+                <div class="cart-item-row">
+                    <div class="cart-item-main">
+                        <div class="cart-item-details">
+                            <div class="sku-stock-header">
+                                <span class="item-index">@indexNumber.</span>
+                                <span class="sku-code">@item.Sku</span>
+                                <span class="stock-status">@item.StockQuantity in stock</span>
+                            </div>
+                            <h6 class="product-title">@item.ProductName</h6>
+                            <div class="product-price">RM @item.Price.ToString("F2")</div>
+                        </div>
+                        <div class="cart-item-image-wrapper">
+                            <img src="@imageSrc" alt="@item.ProductName" class="cart-item-image" />
+                        </div>
+                    </div>
+
+                    <div class="cart-item-metrics">
+                        <div class="metric-box order-metric">
+                            <span class="metric-label">Order</span>
+                            <button class="unit-selector-btn" @onclick="() => ToggleQuantityModal(item)">
+                                <span>@item.Quantity @item.Uom</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chevron-right chevron-icon" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="metric-box total-metric">
+                            <span class="metric-label">Total</span>
+                            <span class="metric-value">RM @itemTotal.ToString("F2")</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="cart-summary-bar">
+            <span class="summary-label">Total</span>
+            <span class="summary-amount">RM @GrandTotal.ToString("F2")</span>
+        </div>
+    }
+</div>
+
+@if (activeItemForEdit != null)
+{
+    <div class="modal-backdrop" @onclick="CloseQuantityModal">
+        <div class="modal-card" @onclick:stopPropagation>
+            <h5 class="modal-title">Adjust Quantity for @activeItemForEdit.ProductName</h5>
+            <div class="modal-stepper">
+                <button class="stepper-btn" @onclick="DecrementQuantity">-</button>
+                <input type="number" class="stepper-input" @bind="activeItemForEdit.Quantity" min="1" />
+                <button class="stepper-btn" @onclick="IncrementQuantity">+</button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-done" @onclick="CloseQuantityModal">Done</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private List<CartItemModel> cartItems = new();
+    private CartItemModel? activeItemForEdit;
+
+    public class CartItemModel
+    {
+        public int Id { get; set; }
+        public string Sku { get; set; } = string.Empty;
+        public string ProductName { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int Quantity { get; set; }
+        public string Uom { get; set; } = "UNIT";
+        public int StockQuantity { get; set; } = 100;
+        public string ImageSrc { get; set; } = string.Empty;
+    }
+
+    private decimal GrandTotal => cartItems.Sum(item => item.Price * item.Quantity);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!UserState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        isLoading = true;
+        try
+        {
+            var apiProducts = await ProductService.GetProductsAsync(1);
+            if (apiProducts != null && apiProducts.Any())
+            {
+                int count = 0;
+                int[] quantities = new[] { 2, 1, 1 };
+
+                foreach (var prod in apiProducts.Take(3))
+                {
+                    decimal price = 100.00m;
+                    if (decimal.TryParse(prod.RegularPrice, out var parsedPrice) && parsedPrice > 0)
+                    {
+                        price = parsedPrice;
+                    }
+
+                    var sku = !string.IsNullOrWhiteSpace(prod.Sku) ? prod.Sku : $"SKU_{12345 + count}";
+                    var img = prod.Images?.FirstOrDefault()?.SrcSmall 
+                              ?? prod.Images?.FirstOrDefault()?.Src 
+                              ?? "";
+
+                    cartItems.Add(new CartItemModel
+                    {
+                        Id = prod.Id,
+                        Sku = sku,
+                        ProductName = string.IsNullOrWhiteSpace(prod.Name) ? "Product name" : prod.Name,
+                        Price = price,
+                        Quantity = count < quantities.Length ? quantities[count] : 1,
+                        Uom = "UNIT",
+                        StockQuantity = prod.StockQuantity ?? 100,
+                        ImageSrc = img
+                    });
+                    count++;
+                }
+            }
+
+            // Fallback sample items matching mockup if API returned empty
+            if (!cartItems.Any())
+            {
+                cartItems = new List<CartItemModel>
+                {
+                    new CartItemModel { Id = 1, Sku = "SKU_12345", ProductName = "Product name", Price = 100.00m, Quantity = 2, Uom = "UNIT", StockQuantity = 100 },
+                    new CartItemModel { Id = 2, Sku = "SKU_12345", ProductName = "Product name", Price = 100.00m, Quantity = 1, Uom = "UNIT", StockQuantity = 100 },
+                    new CartItemModel { Id = 3, Sku = "SKU_12345", ProductName = "Product name", Price = 100.00m, Quantity = 1, Uom = "UNIT", StockQuantity = 100 }
+                };
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoToCatalog()
+    {
+        Navigation.NavigateTo("/catalog");
+    }
+
+    private void ToggleQuantityModal(CartItemModel item)
+    {
+        activeItemForEdit = item;
+    }
+
+    private void CloseQuantityModal()
+    {
+        activeItemForEdit = null;
+    }
+
+    private void IncrementQuantity()
+    {
+        if (activeItemForEdit != null)
+        {
+            activeItemForEdit.Quantity++;
+        }
+    }
+
+    private void DecrementQuantity()
+    {
+        if (activeItemForEdit != null && activeItemForEdit.Quantity > 1)
+        {
+            activeItemForEdit.Quantity--;
+        }
+    }
+}
