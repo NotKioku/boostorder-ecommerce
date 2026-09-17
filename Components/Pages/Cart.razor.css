@@ -1,9 +1,36 @@
 .cart-container {
     max-width: 600px;
     margin: 0 auto;
-    padding: 1rem;
+    min-height: calc(100vh - 3.5rem);
+    background-color: #f4f5f7;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     color: #212529;
+    box-sizing: border-box;
+}
+
+.cart-card {
+    background-color: #ffffff;
+    padding: 0 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.cart-card-subtotal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 0;
+}
+
+.subtotal-label {
+    font-size: 1rem;
+    color: #718096;
+    font-weight: 600;
+}
+
+.subtotal-amount {
+    font-size: 1.15rem;
+    color: #1a202c;
+    font-weight: 800;
 }
 
 .loading-container {
@@ -177,23 +204,56 @@
     color: #2d3748;
 }
 
-.cart-summary-bar {
+.cart-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    max-width: 600px;
+    background-color: #ffffff;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 0.5rem;
+    padding: 0.85rem 1.25rem;
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+    z-index: 100;
 }
 
-.summary-label {
-    font-size: 1.05rem;
+.footer-total-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.footer-total-label {
+    font-size: 0.85rem;
     color: #718096;
-    font-weight: 600;
+    font-weight: 500;
 }
 
-.summary-amount {
-    font-size: 1.15rem;
+.footer-total-amount {
+    font-size: 1.2rem;
     color: #1a202c;
     font-weight: 800;
+}
+
+.btn-checkout {
+    background-color: #00a2ff;
+    color: #ffffff;
+    border: none;
+    border-radius: 9999px;
+    padding: 0.6rem 2.25rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 162, 255, 0.25);
+    transition: background-color 0.2s ease;
+}
+
+.btn-checkout:hover {
+    background-color: #008be6;
 }
 
 /* Modal styles for quantity edit */

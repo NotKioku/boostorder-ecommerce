@@ -27,54 +27,64 @@
     }
     else
     {
-        <div class="cart-list">
-            @for (int i = 0; i < CartState.Items.Count; i++)
-            {
-                var item = CartState.Items[i];
-                var indexNumber = i + 1;
-                var itemTotal = item.Price * item.Quantity;
-                var imageSrc = !string.IsNullOrEmpty(item.ImageSrc) 
-                    ? item.ImageSrc 
-                    : "https://via.placeholder.com/75?text=Product";
+        <div class="cart-card">
+            <div class="cart-list">
+                @for (int i = 0; i < CartState.Items.Count; i++)
+                {
+                    var item = CartState.Items[i];
+                    var indexNumber = i + 1;
+                    var itemTotal = item.Price * item.Quantity;
+                    var imageSrc = !string.IsNullOrEmpty(item.ImageSrc) 
+                        ? item.ImageSrc 
+                        : "https://via.placeholder.com/75?text=Product";
 
-                <div class="cart-item-row">
-                    <div class="cart-item-main">
-                        <div class="cart-item-details">
-                            <div class="sku-stock-header">
-                                <span class="item-index">@indexNumber.</span>
-                                <span class="sku-code">@item.Sku</span>
-                                <span class="stock-status">@item.StockQuantity in stock</span>
+                    <div class="cart-item-row">
+                        <div class="cart-item-main">
+                            <div class="cart-item-details">
+                                <div class="sku-stock-header">
+                                    <span class="item-index">@indexNumber.</span>
+                                    <span class="sku-code">@item.Sku</span>
+                                    <span class="stock-status">@item.StockQuantity in stock</span>
+                                </div>
+                                <h6 class="product-title">@item.ProductName</h6>
+                                <div class="product-price">RM @item.Price.ToString("F2")</div>
                             </div>
-                            <h6 class="product-title">@item.ProductName</h6>
-                            <div class="product-price">RM @item.Price.ToString("F2")</div>
+                            <div class="cart-item-image-wrapper">
+                                <img src="@imageSrc" alt="@item.ProductName" class="cart-item-image" />
+                            </div>
                         </div>
-                        <div class="cart-item-image-wrapper">
-                            <img src="@imageSrc" alt="@item.ProductName" class="cart-item-image" />
-                        </div>
-                    </div>
 
-                    <div class="cart-item-metrics">
-                        <div class="metric-box order-metric">
-                            <span class="metric-label">Order</span>
-                            <button class="unit-selector-btn" @onclick="() => ToggleQuantityModal(item)">
-                                <span>@item.Quantity @item.Uom</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chevron-right chevron-icon" viewBox="0 0 16 16">
-                                    <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="metric-box total-metric">
-                            <span class="metric-label">Total</span>
-                            <span class="metric-value">RM @itemTotal.ToString("F2")</span>
+                        <div class="cart-item-metrics">
+                            <div class="metric-box order-metric">
+                                <span class="metric-label">Order</span>
+                                <button class="unit-selector-btn" @onclick="() => ToggleQuantityModal(item)">
+                                    <span>@item.Quantity @item.Uom</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chevron-right chevron-icon" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="metric-box total-metric">
+                                <span class="metric-label">Total</span>
+                                <span class="metric-value">RM @itemTotal.ToString("F2")</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            }
+                }
+            </div>
+
+            <div class="cart-card-subtotal">
+                <span class="subtotal-label">Total</span>
+                <span class="subtotal-amount">RM @GrandTotal.ToString("F2")</span>
+            </div>
         </div>
 
-        <div class="cart-summary-bar">
-            <span class="summary-label">Total</span>
-            <span class="summary-amount">RM @GrandTotal.ToString("F2")</span>
+        <div class="cart-footer">
+            <div class="footer-total-info">
+                <span class="footer-total-label">Total (@CartState.Items.Count)</span>
+                <span class="footer-total-amount">RM @GrandTotal.ToString("F2")</span>
+            </div>
+            <button class="btn-checkout" type="button">Checkout</button>
         </div>
     }
 </div>

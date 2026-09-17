@@ -19,6 +19,7 @@ namespace boostorder_ecommerce.GlobalStates
         public event Action? OnStateChanged;
 
         public int TotalCount => Items.Sum(i => i.Quantity);
+        public int UniqueCount => Items.Count;
 
         public void AddItem(CartItem item)
         {
