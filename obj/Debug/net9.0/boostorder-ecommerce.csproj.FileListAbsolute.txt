@@ -66,8 +66,6 @@ C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed
 C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed\m4wwk0dbsh-{0}-63fj8s7r0e-63fj8s7r0e.gz
 C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed\wosci7boy4-{0}-0j3bgjxly4-0j3bgjxly4.gz
 C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed\a0gtievdey-{0}-iw3c9fg5ee-iw3c9fg5ee.gz
-C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed\d7btmppzy6-{0}-k7iddwj1va-k7iddwj1va.gz
-C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed\oqkirqmbmd-{0}-k7iddwj1va-k7iddwj1va.gz
 C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\staticwebassets.build.json
 C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\staticwebassets.build.json.cache
 C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\staticwebassets.development.json
@@ -81,3 +79,5 @@ C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\bin\Debug\net9.0\boostorder
 C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\bin\Debug\net9.0\boostorder-ecommerce.pdb
 C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\boostorder-ecommerce.genruntimeconfig.cache
 C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\ref\boostorder-ecommerce.dll
+C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed\d7btmppzy6-{0}-3svq71yjvw-3svq71yjvw.gz
+C:\Users\USER\Desktop\Workspace\boostorder-ecommerce\obj\Debug\net9.0\compressed\oqkirqmbmd-{0}-3svq71yjvw-3svq71yjvw.gz

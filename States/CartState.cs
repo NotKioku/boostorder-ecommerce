@@ -58,6 +58,12 @@ namespace boostorder_ecommerce.GlobalStates
             NotifyStateChanged();
         }
 
+        public void ClearCart()
+        {
+            Items.Clear();
+            NotifyStateChanged();
+        }
+
         private void NotifyStateChanged() => OnStateChanged?.Invoke();
     }
 }
